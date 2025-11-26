@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secret Santa Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #c31432 0%, #240b36 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            /* Allow scrolling */
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '❄️';
+            position: absolute;
+            top: -50px;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-size: 20px;
+            animation: snowfall 10s linear infinite;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        @keyframes snowfall {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            border: 3px solid #c8102e;
+            position: relative;
+        }
+
+        .container::before,
+        .container::after {
+            content: '🎄';
+            position: absolute;
+            font-size: 30px;
+            top: -15px;
+        }
+
+        .container::before {
+            left: 20px;
+        }
+
+        .container::after {
+            right: 20px;
+        }
+
+        h1 {
+            color: #c8102e;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .input-group input[type="text"] {
+            flex: 1;
+            min-width: 0;
+        }
+
+        input[type="text"] {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #c8102e;
+            box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-add {
+            background: #165b33;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .btn-add:hover {
+            background: #0f4125;
+            transform: translateY(-2px);
+        }
+
+        .btn-generate {
+            width: 100%;
+            background: linear-gradient(135deg, #c8102e 0%, #165b33 100%);
+            color: white;
+            margin-top: 10px;
+            padding: 15px;
+            font-size: 18px;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(200, 16, 46, 0.4);
+        }
+
+        .btn-generate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .participants-list {
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .participant-item {
+            background: #f0f8f5;
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s;
+            border-left: 4px solid #165b33;
+            gap: 8px;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .participant-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .participant-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .participant-group {
+            font-size: 0.85em;
+            color: #555;
+        }
+
+        .btn-remove {
+            background: #ff4757;
+            color: white;
+            padding: 6px 12px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .btn-remove:hover {
+            background: #ee5a6f;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .person-card {
+            background: linear-gradient(135deg, #fff8f0 0%, #ffe8e8 100%);
+            border: 3px solid #c8102e;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(200, 16, 46, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .person-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(200, 16, 46, 0.3);
+        }
+
+        .person-card.party-highlight {
+            animation: pulseCard 0.8s ease-out;
+            box-shadow: 0 0 25px rgba(200, 16, 46, 0.6);
+        }
+
+        @keyframes pulseCard {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.04); }
+            100% { transform: scale(1); }
+        }
+
+        .person-card h3 {
+            color: #c8102e;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .reveal-btn {
+            background: #165b33;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .assignment {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #c8102e 0%, #165b33 100%);
+            border-radius: 10px;
+            color: white;
+        }
+
+        .assignment.revealed {
+            display: block;
+            animation: revealAnimation 0.5s;
+        }
+
+        @keyframes revealAnimation {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) rotate(-3deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        .assignment p {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .assignment .recipient {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .btn-reset {
+            width: 100%;
+            background: #95a5a6;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-reset:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-save {
+            width: 100%;
+            background: #165b33;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .btn-save:hover {
+            background: #0f4125;
+        }
+
+        .btn-share {
+            width: 100%;
+            background: #c8102e;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-share:hover {
+            background: #a40d26;
+        }
+
+        .saved-groups {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .saved-groups h2 {
+            color: #c8102e;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .saved-group-item {
+            background: linear-gradient(135deg, #fff8f0 0%, #ffe8e8 100%);
+            border: 2px solid #c8102e;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .saved-group-item:hover {
+            box-shadow: 0 4px 15px rgba(200, 16, 46, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .saved-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 8px;
+        }
+
+        .saved-group-name {
+            font-weight: 600;
+            color: #c8102e;
+            font-size: 1.1em;
+        }
+
+        .saved-group-date {
+            font-size: 0.85em;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .saved-group-participants {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .saved-group-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-view {
+            background: #165b33;
+            color: white;
+            padding: 8px 16px;
+            font-size: 13px;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .btn-view:hover {
+            background: #0f4125;
+        }
+
+        .btn-delete {
+            background: #ff4757;
+            color: white;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .btn-delete:hover {
+            background: #ee5a6f;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .error-msg {
+            color: #ff4757;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-msg.show {
+            display: block;
+        }
+
+        /* Party mode & countdown */
+
+        .party-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .btn-party {
+            background: #f39c12;
+            color: #fff;
+            padding: 10px 18px;
+            font-size: 14px;
+            border-radius: 999px;
+        }
+
+        .btn-party:hover {
+            background: #d68910;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(243, 156, 18, 0.4);
+        }
+
+        .party-status {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .countdown-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            font-weight: 800;
+            color: #fff;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .countdown-overlay.show {
+            opacity: 1;
+        }
+
+        .countdown-overlay span {
+            animation: countdownPop 0.9s ease-out;
+        }
+
+        @keyframes countdownPop {
+            0%   { transform: scale(0.4); opacity: 0; }
+            50%  { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .btn-add {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="setupSection">
+            <h1>🎅 Secret Santa</h1>
+            <p class="subtitle">Add participants, optionally group them (family, team, etc.), and let the magic happen!</p>
+            
+            <div class="input-group">
+                <input type="text" id="nameInput" placeholder="Enter participant name" autocomplete="off">
+                <input type="text" id="groupInput" placeholder="Family / group (optional)" autocomplete="off">
+                <button class="btn-add" onclick="addParticipant()">Add</button>
+            </div>
+            <p class="error-msg" id="errorMsg"></p>
+            
+            <div class="participants-list" id="participantsList"></div>
+            
+            <button class="btn-generate" id="generateBtn" onclick="generateAssignments()" disabled>
+                Generate Secret Santa 🎁
+            </button>
+
+            <div class="saved-groups" id="savedGroupsSection">
+                <h2>📋 Saved Groups</h2>
+                <div id="savedGroupsList"></div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <h1>🎁 Your Assignments</h1>
+            <p class="subtitle">Click each name to reveal… or use Party Mode to reveal all with a countdown!</p>
+
+            <div class="party-controls">
+                <button class="btn-party" onclick="startPartyMode()">🎉 Party Mode Reveal</button>
+                <span id="partyStatus" class="party-status"></span>
+            </div>
+            
+            <div id="assignmentsList"></div>
+            
+            <button class="btn-save" onclick="saveCurrentGroup()">💾 Save This Group</button>
+            <button class="btn-share" onclick="shareAssignments()">📤 Share All Assignments</button>
+            <button class="btn-reset" onclick="resetApp()">Start Over</button>
+        </div>
+    </div>
+
+    <script>
+        // Data structures:
+        // participants: [{ name: string, group: string }]
+        let participants = [];
+        let assignments = {};
+        let savedGroups = [];
+        let currentGroupId = null;
+
+        // Party mode state
+        let partyModeActive = false;
+        let partyIndex = 0;
+        let partyCountdownInterval = null;
+        const partyRevealDelaySeconds = 3; // shorter than 10s as requested
+
+        // Load saved groups on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadSavedGroups();
+            displaySavedGroups();
+        });
+
+        function loadSavedGroups() {
+            const saved = localStorage.getItem('secretSantaGroups');
+            if (saved) {
+                try {
+                    savedGroups = JSON.parse(saved);
+                } catch (e) {
+                    savedGroups = [];
+                }
+            }
+        }
+
+        function saveSavedGroups() {
+            localStorage.setItem('secretSantaGroups', JSON.stringify(savedGroups));
+        }
+
+        function saveCurrentGroup() {
+            if (Object.keys(assignments).length === 0) {
+                alert('No assignments to save!');
+                return;
+            }
+
+            const groupName = prompt('Enter a name for this group:', 'Secret Santa ' + new Date().toLocaleDateString());
+            
+            if (!groupName) {
+                return;
+            }
+
+            const group = {
+                id: currentGroupId || Date.now(),
+                name: groupName,
+                date: new Date().toISOString(),
+                participants: [...participants],
+                assignments: {...assignments}
+            };
+
+            // Check if we're updating an existing group
+            const existingIndex = savedGroups.findIndex(g => g.id === group.id);
+            if (existingIndex !== -1) {
+                savedGroups[existingIndex] = group;
+            } else {
+                savedGroups.push(group);
+            }
+
+            currentGroupId = group.id;
+            saveSavedGroups();
+            displaySavedGroups();
+            alert('✅ Group saved successfully!');
+        }
+
+        function displaySavedGroups() {
+            const list = document.getElementById('savedGroupsList');
+            
+            if (!savedGroups || savedGroups.length === 0) {
+                list.innerHTML = '<div class="empty-state">No saved groups yet. Generate and save your first Secret Santa!</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            
+            // Sort by date (newest first)
+            const sortedGroups = [...savedGroups].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sortedGroups.forEach(group => {
+                const item = document.createElement('div');
+                item.className = 'saved-group-item';
+                
+                const date = new Date(group.date);
+                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                // Handle old format where participants were strings
+                const names = (group.participants || []).map(p => typeof p === 'string' ? p : p.name);
+                
+                item.innerHTML = `
+                    <div class="saved-group-header">
+                        <span class="saved-group-name">${group.name}</span>
+                        <span class="saved-group-date">${formattedDate}</span>
+                    </div>
+                    <div class="saved-group-participants">
+                        👥 ${names.length} participants: ${names.join(', ')}
+                    </div>
+                    <div class="saved-group-buttons">
+                        <button class="btn-view" onclick="loadGroup(${group.id})">🎁 View Assignments</button>
+                        <button class="btn-delete" onclick="deleteGroup(${group.id})">🗑️ Delete</button>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+            });
+        }
+
+        function loadGroup(groupId) {
+            const group = savedGroups.find(g => g.id === groupId);
+            if (!group) {
+                alert('Group not found!');
+                return;
+            }
+
+            // Support old format where participants were strings
+            participants = (group.participants || []).map(p => {
+                if (typeof p === 'string') {
+                    return { name: p, group: '' };
+                }
+                return { name: p.name, group: p.group || '' };
+            });
+
+            assignments = {...group.assignments};
+            currentGroupId = group.id;
+            displayResults();
+        }
+
+        function deleteGroup(groupId) {
+            if (!confirm('Are you sure you want to delete this group?')) {
+                return;
+            }
+
+            savedGroups = savedGroups.filter(g => g.id !== groupId);
+            saveSavedGroups();
+            displaySavedGroups();
+        }
+
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = message;
+            errorMsg.classList.add('show');
+        }
+
+        function addParticipant() {
+            const input = document.getElementById('nameInput');
+            const groupInput = document.getElementById('groupInput');
+            const nameRaw = input.value.trim();
+            const groupRaw = groupInput.value.trim();
+
+            if (nameRaw === '') {
+                showError('Please enter a name');
+                return;
+            }
+
+            // Sanitize name to avoid quote issues in HTML
+            const name = nameRaw.replace(/['"]/g, '');
+            const group = groupRaw.replace(/['"]/g, '');
+
+            // Check for duplicate names
+            if (participants.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                showError('This name is already added');
+                return;
+            }
+
+            participants.push({ name, group });
+            input.value = '';
+            groupInput.value = '';
+
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.classList.remove('show');
+
+            updateParticipantsList();
+            updateGenerateButton();
+        }
+
+        function removeParticipant(name) {
+            participants = participants.filter(p => p.name !== name);
+            updateParticipantsList();
+            updateGenerateButton();
+        }
+
+        function updateParticipantsList() {
+            const list = document.getElementById('participantsList');
+            list.innerHTML = '';
+            
+            participants.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'participant-item';
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'participant-text';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'participant-name';
+                nameSpan.textContent = p.name;
+
+                textDiv.appendChild(nameSpan);
+
+                if (p.group) {
+                    const groupSpan = document.createElement('span');
+                    groupSpan.className = 'participant-group';
+                    groupSpan.textContent = `Group: ${p.group}`;
+                    textDiv.appendChild(groupSpan);
+                }
+
+                const btn = document.createElement('button');
+                btn.className = 'btn-remove';
+                btn.textContent = 'Remove';
+                btn.onclick = () => removeParticipant(p.name);
+
+                item.appendChild(textDiv);
+                item.appendChild(btn);
+                list.appendChild(item);
+            });
+        }
+
+        function updateGenerateButton() {
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = participants.length < 3;
+        }
+
+        function generateAssignments() {
+            if (participants.length < 3) {
+                showError('You need at least 3 participants');
+                return;
+            }
+
+            // Reset party mode state
+            stopPartyMode();
+
+            // Create a new group ID for this generation
+            currentGroupId = Date.now();
+
+            // Create a valid Secret Santa assignment with group constraint
+            const givers = [...participants];
+            const receivers = [...participants];
+            let isValid = false;
+            let attempts = 0;
+            const maxAttempts = 2000;
+
+            while (!isValid && attempts < maxAttempts) {
+                assignments = {};
+                let tempReceivers = [...receivers];
+                let valid = true;
+
+                for (let giver of givers) {
+                    // Filter out the giver and same-group receivers
+                    let possibleReceivers = tempReceivers.filter(r => {
+                        if (r.name === giver.name) return false;
+                        if (giver.group && r.group && giver.group === r.group) return false;
+                        return true;
+                    });
+
+                    if (possibleReceivers.length === 0) {
+                        valid = false;
+                        break;
+                    }
+
+                    const randomIndex = Math.floor(Math.random() * possibleReceivers.length);
+                    const receiver = possibleReceivers[randomIndex];
+
+                    assignments[giver.name] = receiver.name;
+                    tempReceivers = tempReceivers.filter(r => r.name !== receiver.name);
+                }
+
+                if (valid && tempReceivers.length === 0) {
+                    isValid = true;
+                }
+
+                attempts++;
+            }
+
+            if (!isValid) {
+                showError('Unable to generate assignments with these group constraints. Try adjusting groups.');
+                return;
+            }
+
+            displayResults();
+        }
+
+        function displayResults() {
+            const setupSection = document.getElementById('setupSection');
+            const resultsSection = document.getElementById('resultsSection');
+            const assignmentsList = document.getElementById('assignmentsList');
+            
+            assignmentsList.innerHTML = '';
+            
+            participants.forEach((person, index) => {
+                const card = document.createElement('div');
+                card.className = 'person-card';
+                card.id = `person-card-${index}`;
+
+                card.innerHTML = `
+                    <h3>${person.name}${person.group ? ` <span style="font-size:0.7em;color:#555;">(${person.group})</span>` : ''}</h3>
+                    <button class="reveal-btn" onclick="revealAssignment('${person.name}', this)">
+                        🎁 Click to Reveal
+                    </button>
+                    <div class="assignment" id="assignment-${person.name}">
+                        <p>You're giving a gift to:</p>
+                        <p class="recipient">${assignments[person.name]}</p>
+                        <p style="margin-top: 10px; font-size: 0.9em;">🤫 Keep it secret!</p>
+                    </div>
+                    <div class="countdown-overlay" id="countdown-${person.name}">
+                        <span></span>
+                    </div>
+                `;
+                assignmentsList.appendChild(card);
+            });
+            
+            setupSection.style.display = 'none';
+            resultsSection.classList.add('active');
+
+            // Scroll to top of results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function revealAssignment(personName, button) {
+            const assignment = document.getElementById(`assignment-${personName}`);
+            
+            if (!assignment) return;
+
+            if (assignment.classList.contains('revealed')) {
+                assignment.classList.remove('revealed');
+                button.textContent = '🎁 Click to Reveal';
+            } else {
+                assignment.classList.add('revealed');
+                button.textContent = '🙈 Hide Assignment';
+            }
+        }
+
+        function resetApp() {
+            stopPartyMode();
+            participants = [];
+            assignments = {};
+            currentGroupId = null;
+            document.getElementById('setupSection').style.display = 'block';
+            document.getElementById('resultsSection').classList.remove('active');
+            document.getElementById('nameInput').value = '';
+            document.getElementById('groupInput').value = '';
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.classList.remove('show');
+            updateParticipantsList();
+            updateGenerateButton();
+            displaySavedGroups();
+        }
+
+        // Allow Enter key to add participant
+        document.getElementById('nameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addParticipant();
+            }
+        });
+
+        document.getElementById('groupInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addParticipant();
+            }
+        });
+
+        // Sharing functionality
+        function buildAssignmentsText() {
+            if (!participants.length || Object.keys(assignments).length === 0) {
+                return '';
+            }
+            const lines = ['Secret Santa Assignments:'];
+            participants.forEach(p => {
+                const receiver = assignments[p.name];
+                if (receiver) {
+                    lines.push(`${p.name} → ${receiver}`);
+                }
+            });
+            return lines.join('\n');
+        }
+
+        async function shareAssignments() {
+            if (Object.keys(assignments).length === 0) {
+                alert('No assignments to share yet!');
+                return;
+            }
+
+            const text = buildAssignmentsText();
+            if (!text) {
+                alert('No assignments to share yet!');
+                return;
+            }
+
+            try {
+                if (navigator.share) {
+                    await navigator.share({
+                        title: 'Secret Santa Assignments',
+                        text
+                    });
+                } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    alert('Assignments copied to your clipboard! You can paste them into a message.');
+                } else {
+                    alert('Sharing not supported on this device. Here are your assignments:\n\n' + text);
+                }
+            } catch (err) {
+                // User may have cancelled share; just ignore
+                console.error(err);
+            }
+        }
+
+        // Party Mode functions
+        function startPartyMode() {
+            if (!participants.length || Object.keys(assignments).length === 0) {
+                alert('You need assignments first!');
+                return;
+            }
+
+            // If already running, restart from beginning
+            stopPartyMode(true);
+
+            partyModeActive = true;
+            partyIndex = 0;
+            document.getElementById('partyStatus').textContent = 'Party Mode: Let’s go! 🎉';
+
+            runPartyStep();
+        }
+
+        function stopPartyMode(keepStatus = false) {
+            partyModeActive = false;
+            partyIndex = 0;
+            if (partyCountdownInterval) {
+                clearInterval(partyCountdownInterval);
+                partyCountdownInterval = null;
+            }
+            if (!keepStatus) {
+                document.getElementById('partyStatus').textContent = '';
+            }
+
+            // Clear overlays & highlights
+            participants.forEach(p => {
+                const overlay = document.getElementById(`countdown-${p.name}`);
+                if (overlay) {
+                    overlay.classList.remove('show');
+                    const span = overlay.querySelector('span');
+                    if (span) span.textContent = '';
+                }
+            });
+
+            document.querySelectorAll('.person-card.party-highlight').forEach(card => {
+                card.classList.remove('party-highlight');
+            });
+        }
+
+        function runPartyStep() {
+            if (!partyModeActive) return;
+
+            if (partyIndex >= participants.length) {
+                partyModeActive = false;
+                document.getElementById('partyStatus').textContent = 'Party Mode finished! 🎊';
+                return;
+            }
+
+            const current = participants[partyIndex];
+            const card = document.getElementById(`person-card-${partyIndex}`);
+            if (!card) {
+                partyIndex++;
+                runPartyStep();
+                return;
+            }
+
+            // Highlight card and scroll into view
+            document.querySelectorAll('.person-card.party-highlight').forEach(c => c.classList.remove('party-highlight'));
+            card.classList.add('party-highlight');
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            const overlay = document.getElementById(`countdown-${current.name}`);
+            if (!overlay) {
+                partyIndex++;
+                runPartyStep();
+                return;
+            }
+
+            // Start countdown
+            let remaining = partyRevealDelaySeconds;
+            overlay.classList.add('show');
+            const span = overlay.querySelector('span');
+            if (span) {
+                span.textContent = remaining;
+            }
+
+            document.getElementById('partyStatus').textContent =
+                `Party Mode: Revealing ${current.name} in ${remaining}s...`;
+
+            if (partyCountdownInterval) {
+                clearInterval(partyCountdownInterval);
+            }
+
+            partyCountdownInterval = setInterval(() => {
+                if (!partyModeActive) {
+                    clearInterval(partyCountdownInterval);
+                    return;
+                }
+
+                remaining--;
+                if (span) {
+                    span.textContent = remaining > 0 ? remaining : '🎉';
+                }
+
+                if (remaining > 0) {
+                    document.getElementById('partyStatus').textContent =
+                        `Party Mode: Revealing ${current.name} in ${remaining}s...`;
+                }
+
+                if (remaining <= 0) {
+                    clearInterval(partyCountdownInterval);
+                    partyCountdownInterval = null;
+
+                    overlay.classList.remove('show');
+                    if (span) span.textContent = '';
+
+                    // Reveal this person's assignment automatically
+                    const button = card.querySelector('.reveal-btn');
+                    if (button) {
+                        const assignment = document.getElementById(`assignment-${current.name}`);
+                        if (assignment && !assignment.classList.contains('revealed')) {
+                            revealAssignment(current.name, button);
+                        }
+                    }
+
+                    // Wait 3 seconds AFTER revealing before moving on
+                    setTimeout(() => {
+                        partyIndex++;
+                        runPartyStep();
+                    }, 3000); // 3000ms = 3 seconds
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
