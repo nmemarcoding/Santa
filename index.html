@@ -525,7 +525,9 @@
             
             <div class="input-group">
                 <input type="text" id="nameInput" placeholder="Enter participant name" autocomplete="off">
-                <input type="text" id="groupInput" placeholder="Family / group (optional)" autocomplete="off">
+                <!-- group input now has a datalist for dropdown of existing groups -->
+                <input type="text" id="groupInput" placeholder="Family / group (optional)" autocomplete="off" list="groupSuggestions">
+                <datalist id="groupSuggestions"></datalist>
                 <button class="btn-add" onclick="addParticipant()">Add</button>
             </div>
             <p class="error-msg" id="errorMsg"></p>
@@ -577,6 +579,7 @@
         window.addEventListener('DOMContentLoaded', function() {
             loadSavedGroups();
             displaySavedGroups();
+            updateGroupSuggestions(); // <-- populate dropdown from saved groups on load
         });
 
         function loadSavedGroups() {
@@ -592,6 +595,38 @@
 
         function saveSavedGroups() {
             localStorage.setItem('secretSantaGroups', JSON.stringify(savedGroups));
+        }
+
+        // Build the list of unique group names for the datalist
+        function updateGroupSuggestions() {
+            const datalist = document.getElementById('groupSuggestions');
+            if (!datalist) return;
+
+            const groupsSet = new Set();
+
+            // From current participants
+            participants.forEach(p => {
+                if (p.group) {
+                    groupsSet.add(p.group);
+                }
+            });
+
+            // From saved groups (also support old format)
+            savedGroups.forEach(group => {
+                (group.participants || []).forEach(p => {
+                    const groupName = typeof p === 'string' ? '' : (p.group || '');
+                    if (groupName) {
+                        groupsSet.add(groupName);
+                    }
+                });
+            });
+
+            datalist.innerHTML = '';
+            groupsSet.forEach(groupName => {
+                const option = document.createElement('option');
+                option.value = groupName;
+                datalist.appendChild(option);
+            });
         }
 
         function saveCurrentGroup() {
@@ -625,6 +660,7 @@
             currentGroupId = group.id;
             saveSavedGroups();
             displaySavedGroups();
+            updateGroupSuggestions(); // groups may have changed
             alert('✅ Group saved successfully!');
         }
 
@@ -686,6 +722,7 @@
 
             assignments = {...group.assignments};
             currentGroupId = group.id;
+            updateGroupSuggestions(); // update dropdown for loaded participants
             displayResults();
         }
 
@@ -697,6 +734,7 @@
             savedGroups = savedGroups.filter(g => g.id !== groupId);
             saveSavedGroups();
             displaySavedGroups();
+            updateGroupSuggestions(); // recalc groups after delete
         }
 
         function showError(message) {
@@ -735,12 +773,14 @@
 
             updateParticipantsList();
             updateGenerateButton();
+            updateGroupSuggestions(); // <-- new group becomes available in dropdown
         }
 
         function removeParticipant(name) {
             participants = participants.filter(p => p.name !== name);
             updateParticipantsList();
             updateGenerateButton();
+            updateGroupSuggestions(); // recalc groups after removal
         }
 
         function updateParticipantsList() {
@@ -906,6 +946,7 @@
             updateParticipantsList();
             updateGenerateButton();
             displaySavedGroups();
+            updateGroupSuggestions(); // reset suggestions (still from saved groups)
         }
 
         // Allow Enter key to add participant
