@@ -1083,7 +1083,7 @@
             if (!participants.length || Object.keys(assignments).length === 0) {
                 return '';
             }
-            const lines = ['Secret Santa Assignments:'];
+            const lines = ['Secret Santa:'];
             participants.forEach(p => {
                 const receiver = assignments[p.name];
                 if (receiver) {
